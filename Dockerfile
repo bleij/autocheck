@@ -28,5 +28,5 @@ RUN mkdir -p /app/data /app/db
 # Открываем порт сервиса
 EXPOSE 8000
 
-# Команда запуска FastAPI через uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Команда запуска FastAPI через uvicorn с горячей перезагрузкой
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -98,7 +98,11 @@ def parse_dump_file(file_path: Union[str, Path]) -> List[CarCreate]:
     """
     path = Path(file_path)
     if not path.exists():
-        raise FileNotFoundError(f"Файл выгрузки 1С не найден: {path}")
+        candidate = Path(__file__).resolve().parent.parent / str(file_path).lstrip("./")
+        if candidate.exists():
+            path = candidate
+        else:
+            raise FileNotFoundError(f"Файл выгрузки 1С не найден: {path}")
 
     content_bytes = path.read_bytes()
     return parse_file_content(content_bytes, path.name)
@@ -223,7 +227,13 @@ async def clear_and_reset_database(session: AsyncSession, base_file_path: str = 
     await session.commit()
     logger.info("Таблица cars очищена. Загрузка базового набора...")
 
-    stats = await sync_from_dump(session, base_file_path)
+    target_path = Path(base_file_path)
+    if not target_path.exists():
+        candidate = Path(__file__).resolve().parent.parent / base_file_path
+        if candidate.exists():
+            target_path = candidate
+
+    stats = await sync_from_dump(session, str(target_path))
     stats.message = f"База данных сброшена и инициализирована: создано {stats.created} базовых авто (KZT)"
     return stats
 
