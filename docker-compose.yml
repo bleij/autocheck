@@ -1,0 +1,18 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autocheck-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./db:/app/db
+      - ./app:/app/app
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/db/autocheck.db
+      - DUMP_FILE_PATH=/app/data/1c_dump.json
+      - PARSE_INTERVAL_MINUTES=5
+      - DEBUG=True
+    restart: unless-stopped

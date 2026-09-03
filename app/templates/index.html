@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autocheck — Мониторинг выгрузок 1С</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #131b2e;
+      --bg-card-hover: #19243d;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+      --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding-bottom: 3rem;
+    }
+
+    /* Верхняя навигационная панель */
+    header {
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 1rem 2rem;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      font-size: 0.75rem;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Контейнер контента */
+    main {
+      max-width: 1400px;
+      margin: 2rem auto 0;
+      padding: 0 2rem;
+    }
+
+    /* Статистические плашки */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Панель фильтров */
+    .filters-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input-field, .select-field {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      color: var(--text-main);
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus, .select-field:focus {
+      border-color: var(--primary);
+    }
+
+    .select-field option {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    /* Сетка автомобилей */
+    .cars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .car-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .car-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(59, 130, 246, 0.4);
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .car-header {
+      padding: 1.25rem 1.25rem 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .car-vin {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--primary);
+      background: rgba(59, 130, 246, 0.1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+
+    .car-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .car-body {
+      padding: 1.25rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .car-specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .spec-title {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .spec-val {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .car-price {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 0.25rem;
+    }
+
+    .defects-box {
+      margin-top: auto;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      padding: 0.75rem;
+      border-left: 3px solid var(--border-color);
+      font-size: 0.825rem;
+      color: var(--text-muted);
+    }
+
+    .defects-box.has-defects {
+      border-left-color: var(--warning);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .defects-box.clean {
+      border-left-color: var(--accent);
+      background: rgba(16, 185, 129, 0.05);
+      color: var(--accent);
+    }
+
+    .car-footer {
+      padding: 0.75rem 1.25rem;
+      background: rgba(0, 0, 0, 0.15);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* Панель управления выгрузками 1С */
+    .dumps-panel {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(19, 27, 46, 0.9) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .dumps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.85rem;
+    }
+
+    .dumps-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .dumps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .preset-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .preset-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .preset-info h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .preset-info p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .preset-filename {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--primary);
+      background: rgba(59, 130, 246, 0.1);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 0.35rem;
+    }
+
+    .btn-sm {
+      padding: 0.45rem 0.9rem;
+      font-size: 0.8rem;
+    }
+
+    .btn-success {
+      background-color: #059669;
+      color: #fff;
+    }
+    .btn-success:hover {
+      background-color: #047857;
+    }
+
+    .btn-amber {
+      background-color: #d97706;
+      color: #fff;
+    }
+    .btn-amber:hover {
+      background-color: #b45309;
+    }
+
+    /* Уведомление Toast */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #1e293b;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem 1.75rem;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 1000;
+      max-width: 450px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--bg-card);
+      border-radius: 14px;
+      border: 1px dashed var(--border-color);
+    }
+
+    .empty-state h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">1C</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <h1 class="brand-title">Autocheck Integration</h1>
+            <span class="brand-badge">Синхронизация активна</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-dim);">Парсер выгрузок автомобилей из 1С</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="sync-btn" class="btn btn-primary" onclick="triggerSync()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Синхронизировать сейчас
+        </button>
+        <a href="/docs" target="_blank" class="btn btn-outline">Swagger API</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Плашки статистики -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Автомобилей в каталоге</span>
+        <span class="stat-value" id="stat-total">{{ total_count }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Уникальных марок</span>
+        <span class="stat-value">{{ marks|length }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Интервал автопроверки</span>
+        <span class="stat-value" style="font-size: 1.5rem; color: var(--primary);">{{ parse_interval }} мин</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Последняя синхронизация</span>
+        <span class="stat-value" style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;" id="last-sync-time">
+          {{ last_sync.timestamp.strftime('%H:%M:%S') if last_sync and last_sync.timestamp else 'Ожидает запуска' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Панель управления выгрузками 1С -->
+    <div class="dumps-panel">
+      <div class="dumps-header">
+        <div class="dumps-title">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+          </svg>
+          Управление выгрузками 1С (Цены в тенге ₸)
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <input type="file" id="file-upload-input" accept=".json,.csv" style="display: none;" onchange="uploadCustomFile(event)">
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('file-upload-input').click()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+            Загрузить свой JSON/CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="dumps-grid">
+        <!-- Пресет 1: Базовая выгрузка -->
+        <div class="preset-card">
+          <div class="preset-info">
+            <h4>📦 Базовый набор авто</h4>
+            <p>10 автомобилей с ценами в KZT (Camry, Tucson, Sportage, Cobalt, Prado, RX 350).</p>
+            <span class="preset-filename">1c_dump_base.json</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="triggerSyncWithFile('1c_dump_base.json')">
+            Импортировать базовые 10 авто
+          </button>
+        </div>
+
+        <!-- Пресет 2: Обновление для проверки Upsert -->
+        <div class="preset-card" style="border-color: rgba(245, 158, 11, 0.4);">
+          <div class="preset-info">
+            <h4>⚡ Проверка Upsert</h4>
+            <p>Скидка на Camry, обновлены пробеги и цены у 5 авто + добавлены 2 новых авто (Monjaro, Santa Fe).</p>
+            <span class="preset-filename">1c_dump_update.json</span>
+          </div>
+          <button class="btn btn-amber btn-sm" onclick="triggerSyncWithFile('1c_dump_update.json')">
+            Применить обновление (Upsert)
+          </button>
+        </div>
+
+        <!-- Пресет 3: CSV выгрузка -->
+        <div class="preset-card" style="border-color: rgba(16, 185, 129, 0.4);">
+          <div class="preset-info">
+            <h4>📄 CSV выгрузка партнера</h4>
+            <p>5 автомобилей в CSV-формате (разделитель «;», цены в KZT: BMW X5, Touareg, Forester, Zeekr 001).</p>
+            <span class="preset-filename">1c_dump_partner.csv</span>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="triggerSyncWithFile('1c_dump_partner.csv')">
+            Импортировать CSV (5 авто)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Фильтры и поиск -->
+    <form method="get" action="/" class="filters-bar" id="filters-form" onsubmit="submitCleanFilters(event)">
+      <div class="filter-group" style="flex: 2;">
+        <label class="filter-label" for="search-input">Поиск по VIN, марке или дефектам</label>
+        <input type="text" id="search-input" name="search" class="input-field" placeholder="Например: WBA, Vesta, сколы..." value="{{ search_query or '' }}">
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="mark-select">Марка</label>
+        <select id="mark-select" name="mark" class="select-field" onchange="submitCleanFilters(event)">
+          <option value="">Все марки</option>
+          {% for m in marks %}
+          <option value="{{ m }}" {% if selected_mark == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group" style="flex: 0 0 140px;">
+        <label class="filter-label" for="min-year-input">Год от</label>
+        <input type="number" id="min-year-input" name="min_year" class="input-field" placeholder="2018" value="{{ selected_min_year or '' }}">
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: auto; padding-bottom: 2px;">
+        <button type="submit" class="btn btn-primary" id="btn-apply-filter">Применить</button>
+        {% if search_query or selected_mark or selected_min_year or selected_max_year or selected_min_price or selected_max_price %}
+        <a href="/" class="btn btn-outline">Сбросить</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- Список автомобилей -->
+    {% if cars %}
+    <div class="cars-grid">
+      {% for car in cars %}
+      <div class="car-card">
+        <div class="car-header">
+          <span class="car-vin" title="Нажмите, чтобы скопировать" onclick="copyVin('{{ car.vin }}')">VIN: {{ car.vin }}</span>
+          <h2 class="car-title">{{ car.mark }} {{ car.model }}</h2>
+        </div>
+
+        <div class="car-body">
+          <div class="car-specs">
+            <div class="spec-item">
+              <span class="spec-title">Год выпуска</span>
+              <span class="spec-val">{{ car.year }} г.</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-title">Пробег</span>
+              <span class="spec-val">{{ "{:,}".format(car.mileage).replace(',', ' ') }} км</span>
+            </div>
+          </div>
+
+          <div class="car-price">
+            {{ "{:,.0f}".format(car.price).replace(',', ' ') }} ₸
+          </div>
+
+          {% if car.defects %}
+          <div class="defects-box has-defects">
+            <strong>⚠️ Замечания / Дефекты:</strong><br>
+            {{ car.defects }}
+          </div>
+          {% else %}
+          <div class="defects-box clean">
+            ✓ Замечания отсутствуют (заводское состояние)
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="car-footer">
+          <span>Синхронизировано:</span>
+          <span>{{ car.updated_at.strftime('%d.%m.%Y %H:%M') if car.updated_at else 'Не указано' }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <h3>Автомобили не найдены</h3>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">По заданным критериям фильтрации записей нет либо база данных пуста.</p>
+      <button class="btn btn-primary" onclick="triggerSyncWithFile('1c_dump_base.json')">Запустить парсинг 1c_dump_base.json (10 авто)</button>
+    </div>
+    {% endif %}
+  </main>
+
+  <div id="toast"></div>
+
+  <script>
+    async function triggerSync() {
+      await triggerSyncWithFile(null);
+    }
+
+    async function triggerSyncWithFile(fileName) {
+      const btn = document.getElementById('sync-btn');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = 'Синхронизация...';
+
+      try {
+        const url = fileName ? `/api/sync?file_name=${encodeURIComponent(fileName)}` : '/api/sync';
+        const response = await fetch(url, { method: 'POST' });
+        
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Ошибка сервера при синхронизации');
+        }
+
+        const result = await response.json();
+        const msg = `<strong>✓ Успешно!</strong><br>Создано: <b>${result.created}</b> записей, обновлено: <b>${result.updated}</b> записей.<br><small style="opacity: 0.85;">Всего обработано: ${result.total_processed} шт.</small>`;
+        showToast(msg, false);
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        showToast(`<strong>✕ Ошибка синхронизации:</strong><br>${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    async function uploadCustomFile(event) {
+      const fileInput = event.target;
+      if (!fileInput.files || fileInput.files.length === 0) return;
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      showToast(`Загрузка файла <b>${file.name}</b>...`, false);
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Не удалось обработать загруженный файл');
+        }
+
+        const result = await response.json();
+        const msg = `<strong>✓ Успешно! Файл ${file.name} импортирован!</strong><br>Создано: <b>${result.created}</b> записей, обновлено: <b>${result.updated}</b> записей.<br><small style="opacity: 0.85;">Всего обработано: ${result.total_processed} шт.</small>`;
+        showToast(msg, false);
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1600);
+      } catch (err) {
+        showToast(`<strong>✕ Ошибка загрузки:</strong><br>${err.message}`, true);
+      } finally {
+        fileInput.value = '';
+      }
+    }
+
+    function showToast(htmlContent, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.innerHTML = htmlContent;
+      toast.style.borderColor = isError ? '#ef4444' : '#10b981';
+      toast.style.color = isError ? '#fca5a5' : '#f3f4f6';
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 4500);
+    }
+
+    function submitCleanFilters(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      const form = document.getElementById('filters-form');
+      const formData = new FormData(form);
+      const params = new URLSearchParams();
+
+      for (const [key, value] of formData.entries()) {
+        const trimmed = typeof value === 'string' ? value.trim() : value;
+        if (trimmed !== '') {
+          params.append(key, trimmed);
+        }
+      }
+
+      const queryString = params.toString();
+      window.location.href = queryString ? `/?${queryString}` : '/';
+    }
+
+    function copyVin(vin) {
+      navigator.clipboard.writeText(vin);
+      showToast(`VIN <b>${vin}</b> скопирован в буфер!`);
+    }
+  </script>
+</body>
+</html>
