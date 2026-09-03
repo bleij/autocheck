@@ -5,10 +5,10 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import get_local_now, settings
 from app.models import Car
 from app.schemas import CarCreate, SyncStats
 
@@ -152,6 +152,7 @@ async def upsert_cars(session: AsyncSession, cars_data: List[CarCreate]) -> Sync
                 existing.mileage = car_item.mileage
                 existing.price = car_item.price
                 existing.defects = car_item.defects
+                existing.updated_at = get_local_now()
                 updated_count += 1
             else:
                 # Создание новой записи
@@ -163,6 +164,8 @@ async def upsert_cars(session: AsyncSession, cars_data: List[CarCreate]) -> Sync
                     mileage=car_item.mileage,
                     price=car_item.price,
                     defects=car_item.defects,
+                    created_at=get_local_now(),
+                    updated_at=get_local_now(),
                 )
                 session.add(new_car)
                 created_count += 1
@@ -209,6 +212,20 @@ async def sync_from_dump(session: AsyncSession, file_path: Optional[str] = None)
             skipped_or_failed=0,
             message=f"Ошибка парсинга: {str(e)}",
         )
+
+
+async def clear_and_reset_database(session: AsyncSession, base_file_path: str = "data/1c_dump_base.json") -> SyncStats:
+    """
+    Полностью очищает таблицу cars и повторно инициализирует её базовым набором 10 авто.
+    """
+    logger.info("Сброс базы данных: очистка таблицы cars...")
+    await session.execute(delete(Car))
+    await session.commit()
+    logger.info("Таблица cars очищена. Загрузка базового набора...")
+
+    stats = await sync_from_dump(session, base_file_path)
+    stats.message = f"База данных сброшена и инициализирована: создано {stats.created} базовых авто (KZT)"
+    return stats
 
 
 async def get_cars(

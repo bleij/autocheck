@@ -115,3 +115,31 @@ async def test_upsert_insert_and_update(test_db_session: AsyncSession):
     assert car_updated.price == 4300000
     assert car_updated.mileage == 52000
     assert car_updated.defects == "Появился скол на капоте"
+
+
+@pytest.mark.asyncio
+async def test_timestamps_use_local_time(test_db_session: AsyncSession):
+    """Проверка, что время updated_at генерируется в локальном часовом поясе (Asia/Almaty), а не в UTC."""
+    from app.config import get_local_now
+
+    now_almaty = get_local_now()
+    cars = [
+        CarCreate(
+            vin="ALMATYTIME123456",
+            mark="Toyota",
+            model="Camry",
+            year=2021,
+            mileage=50000,
+            price=15200000,
+            defects="Заводской окрас",
+        )
+    ]
+    await upsert_cars(test_db_session, cars)
+    car = await get_car_by_vin(test_db_session, "ALMATYTIME123456")
+    assert car is not None
+    assert car.updated_at is not None
+
+    # Разница между временем сохранения и текущим временем Алматы должна быть менее 5 секунд
+    time_diff_seconds = abs((car.updated_at - now_almaty).total_seconds())
+    assert time_diff_seconds < 5, f"Разница во времени {time_diff_seconds}с превышает допустимую (проблема с часовым поясом!)"
+

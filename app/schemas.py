@@ -74,6 +74,9 @@ class CarResponse(CarBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+from app.config import get_local_now
+
+
 class SyncStats(BaseModel):
     """Статистика выполнения синхронизации с 1С."""
     status: str = Field(..., description="Статус операции (success/warning/error)")
@@ -82,7 +85,7 @@ class SyncStats(BaseModel):
     updated: int = Field(0, description="Обновлено существующих автомобилей")
     skipped_or_failed: int = Field(0, description="Пропущено из-за ошибок")
     message: str = Field("", description="Поясняющее сообщение")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=get_local_now)
 
 
 def empty_str_to_none(v: Any) -> Any:

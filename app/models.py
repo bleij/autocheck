@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.config import get_local_now
 from app.database import Base
 
 
@@ -46,7 +47,7 @@ class Car(Base):
     price: Mapped[float] = mapped_column(
         Numeric(12, 2),
         nullable=False,
-        comment="Стоимость в рублях",
+        comment="Стоимость в тенге ₸",
     )
     defects: Mapped[Optional[str]] = mapped_column(
         Text,
@@ -55,14 +56,14 @@ class Car(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
-        comment="Дата добавления в базу данных",
+        default=get_local_now,
+        comment="Дата добавления в базу данных (время Алматы)",
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
-        comment="Дата последнего обновления информации",
+        default=get_local_now,
+        onupdate=get_local_now,
+        comment="Дата последнего обновления информации (время Алматы)",
     )
 
     def to_dict(self) -> dict:

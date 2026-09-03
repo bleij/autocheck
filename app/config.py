@@ -33,3 +33,21 @@ except ImportError:
 # Экземпляр синглтона настроек
 settings = Settings()
 
+
+from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+    LOCAL_TZ = ZoneInfo("Asia/Almaty")
+except Exception:
+    LOCAL_TZ = None
+
+
+def get_local_now() -> datetime:
+    """
+    Возвращает текущее локальное время в часовом поясе Asia/Almaty (UTC+5).
+    Возвращает naive datetime для корректной работы с SQLite и отображения в шаблонах без смещения.
+    """
+    if LOCAL_TZ:
+        return datetime.now(LOCAL_TZ).replace(tzinfo=None)
+    return datetime.now()
+

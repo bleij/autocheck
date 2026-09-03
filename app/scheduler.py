@@ -5,7 +5,7 @@ from typing import Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from app.config import settings
+from app.config import get_local_now, settings
 from app.database import async_session_maker
 from app.schemas import SyncStats
 from app.services import sync_from_dump
@@ -25,7 +25,7 @@ async def scheduled_sync_job() -> None:
     Запускается по расписанию через APScheduler.
     """
     global last_sync_info
-    logger.info(f"[{datetime.now(timezone.utc).isoformat()}] Запуск периодической синхронизации с 1С...")
+    logger.info(f"[{get_local_now().strftime('%Y-%m-%d %H:%M:%S')}] Запуск периодической синхронизации с 1С (Asia/Almaty)...")
 
     try:
         async with async_session_maker() as session:

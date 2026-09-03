@@ -14,6 +14,7 @@ from app.models import Car
 from app.scheduler import get_last_sync_status, shutdown_scheduler, start_scheduler
 from app.schemas import CarFilterParams, CarResponse, SyncStats
 from app.services import (
+    clear_and_reset_database,
     get_car_by_vin,
     get_cars,
     get_distinct_marks,
@@ -221,9 +222,21 @@ async def upload_dump_file_endpoint(
     except Exception as e:
         logger.error(f"Ошибка при обработке загруженного файла: {e}")
         raise HTTPException(
-            status_code=status.HTTP400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Не удалось обработать файл: {str(e)}",
         )
+
+
+@app.post("/api/reset", response_model=SyncStats, summary="Сбросить базу и загрузить 10 базовых авто")
+@app.delete("/api/cars", response_model=SyncStats, summary="Очистить базу и восстановить базовый набор")
+async def reset_database_endpoint(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Полностью очищает базу данных и повторно инициализирует её базовой выгрузкой 1c_dump_base.json (10 авто в тенге ₸).
+    """
+    stats = await clear_and_reset_database(db, "data/1c_dump_base.json")
+    return stats
 
 
 @app.get("/api/status", summary="Статус микросервиса и планировщика")

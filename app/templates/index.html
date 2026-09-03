@@ -438,6 +438,15 @@
       background-color: #b45309;
     }
 
+    .btn-danger {
+      background-color: #dc2626;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background-color: #b91c1c;
+      box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
+    }
+
     /* Уведомление Toast */
     #toast {
       position: fixed;
@@ -533,6 +542,12 @@
           Управление выгрузками 1С (Цены в тенге ₸)
         </div>
         <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-danger btn-sm" onclick="resetDatabase()" title="Очистить каталог и загрузить 10 базовых авто">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Сбросить базу (10 авто)
+          </button>
           <input type="file" id="file-upload-input" accept=".json,.csv" style="display: none;" onchange="uploadCustomFile(event)">
           <button class="btn btn-outline btn-sm" onclick="document.getElementById('file-upload-input').click()">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -766,6 +781,29 @@
 
       const queryString = params.toString();
       window.location.href = queryString ? `/?${queryString}` : '/';
+    }
+
+    async function resetDatabase() {
+      if (!confirm('Вы уверены, что хотите полностью сбросить базу данных и восстановить начальные 10 автомобилей?')) {
+        return;
+      }
+      showToast('Сброс базы данных...', false);
+      try {
+        const response = await fetch('/api/reset', { method: 'POST' });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Не удалось сбросить базу данных');
+        }
+        const result = await response.json();
+        const msg = `<strong>✓ База успешно сброшена!</strong><br>${result.message}`;
+        showToast(msg, false);
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1200);
+      } catch (err) {
+        showToast(`<strong>✕ Ошибка сброса:</strong><br>${err.message}`, true);
+      }
     }
 
     function copyVin(vin) {

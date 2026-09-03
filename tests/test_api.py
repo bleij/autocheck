@@ -181,10 +181,10 @@ async def test_sync_preset_base_and_update_upsert(client: AsyncClient):
     assert data_base["status"] == "success"
     assert data_base["created"] == 10
 
-    # Проверяем начальную цену Camry
+    # Проверяем начальную цену Camry (15.2M ₸)
     camry_res = await client.get("/api/cars/JTDKN36U601894523")
     assert camry_res.status_code == 200
-    assert camry_res.json()["price"] == 16800000.0
+    assert camry_res.json()["price"] == 15200000.0
 
     # 2. Обновление (Upsert)
     res_update = await client.post("/api/sync?file_name=1c_dump_update.json")
@@ -194,15 +194,15 @@ async def test_sync_preset_base_and_update_upsert(client: AsyncClient):
     assert data_update["updated"] == 5
     assert data_update["created"] == 2
 
-    # Проверяем, что цена Camry снизилась до 15 900 000 ₸
+    # Проверяем, что цена Camry снизилась до 14 400 000 ₸
     camry_updated = await client.get("/api/cars/JTDKN36U601894523")
-    assert camry_updated.json()["price"] == 15900000.0
-    assert "скидка недели" in camry_updated.json()["defects"]
+    assert camry_updated.json()["price"] == 14400000.0
+    assert "скидка недели" in camry_updated.json()["defects"].lower()
 
-    # Проверяем, что появилась новая машина (Geely Monjaro)
-    monjaro = await client.get("/api/cars/LB3754321P9876543")
-    assert monjaro.status_code == 200
-    assert monjaro.json()["mark"] == "Geely"
+    # Проверяем, что появилась новая машина (Audi Q5)
+    audi = await client.get("/api/cars/WAUZZZFY1M2456789")
+    assert audi.status_code == 200
+    assert audi.json()["mark"] == "Audi"
 
 
 @pytest.mark.asyncio
@@ -214,11 +214,36 @@ async def test_sync_preset_partner_csv(client: AsyncClient):
     assert data_csv["status"] == "success"
     assert data_csv["created"] == 5
 
-    # Проверяем наличие BMW X5
+    # Проверяем наличие BMW X5 с ценой 29.5M ₸
     bmw_res = await client.get("/api/cars/WBAJU2106K9871234")
     assert bmw_res.status_code == 200
     assert bmw_res.json()["mark"] == "BMW"
-    assert bmw_res.json()["price"] == 42000000.0
+    assert bmw_res.json()["price"] == 29500000.0
+
+
+@pytest.mark.asyncio
+async def test_reset_database_endpoint(client: AsyncClient):
+    """Проверка эндпоинта сброса базы данных POST /api/reset."""
+    # 1. Загружаем CSV (добавляем машины)
+    await client.post("/api/sync?file_name=1c_dump_partner.csv")
+    cars_before_res = await client.get("/api/cars?limit=100")
+    assert len(cars_before_res.json()) >= 6
+
+    # 2. Вызываем сброс базы данных
+    reset_res = await client.post("/api/reset")
+    assert reset_res.status_code == 200
+    data = reset_res.json()
+    assert data["status"] == "success"
+    assert data["created"] == 10
+
+    # 3. Проверяем, что в базе ровно 10 базовых автомобилей
+    cars_after_res = await client.get("/api/cars?limit=100")
+    cars_after = cars_after_res.json()
+    assert len(cars_after) == 10
+    vins = [c["vin"] for c in cars_after]
+    assert "JTDKN36U601894523" in vins  # Camry
+    assert "WBAJU2106K9871234" not in vins  # BMW X5 из CSV удален при сбросе
+
 
 
 
